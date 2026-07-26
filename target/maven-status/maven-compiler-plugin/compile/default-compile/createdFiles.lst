@@ -1,0 +1,17 @@
+com/docprocessor/model/User.class
+com/docprocessor/DocProcessorApplication.class
+com/docprocessor/controller/AdminApiController.class
+com/docprocessor/service/DocumentParsingService.class
+com/docprocessor/repository/UserRepository.class
+com/docprocessor/model/DocumentSection.class
+com/docprocessor/service/UserService.class
+com/docprocessor/repository/SystemConfigurationRepository.class
+com/docprocessor/security/SecurityConfig.class
+com/docprocessor/controller/DocumentApiController.class
+com/docprocessor/repository/ProcessedDocumentRepository.class
+com/docprocessor/model/SystemConfiguration.class
+com/docprocessor/service/SystemConfigurationService.class
+com/docprocessor/service/DocumentParsingService$1.class
+com/docprocessor/model/ProcessedDocument.class
+com/docprocessor/security/CustomAuthenticationProvider.class
+com/docprocessor/controller/WebMvcController.class

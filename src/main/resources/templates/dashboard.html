@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${title} + ' - Dashboard'">Dashboard</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome for beautiful icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f4f6f9;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .navbar-brand {
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .header-section {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 15px rgba(30, 60, 114, 0.2);
+        }
+        .dropzone-container {
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            background-color: white;
+            padding: 3rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .dropzone-container:hover {
+            border-color: #2a5298;
+            background-color: #f8fafc;
+        }
+        .badge-processed {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+        .badge-failed {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+        .list-group-item-action {
+            border: none;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            transition: all 0.2s ease;
+        }
+        .list-group-item-action.active {
+            background-color: #2a5298 !important;
+            color: white !important;
+        }
+        .section-content-pre {
+            white-space: pre-wrap;
+            background-color: #fafafa;
+            border-left: 4px solid #2a5298;
+            padding: 1.5rem;
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <span class="navbar-brand"><i class="fa-solid fa-file-shield me-2"></i>DocProcessor</span>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/"><i class="fa-solid fa-gauge me-1"></i>Dashboard</a>
+                    </li>
+                    <li class="nav-item" th:if="${isAdmin}">
+                        <a class="nav-link" href="/admin"><i class="fa-solid fa-users-gear me-1"></i>Admin Console</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/swagger-ui.html" target="_blank"><i class="fa-solid fa-code me-1"></i>Swagger API</a>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center">
+                    <span class="text-light me-3"><i class="fa-solid fa-user me-1"></i>Welcome, <strong th:text="${username}">User</strong></span>
+                    <form action="/logout" method="post">
+                        <button class="btn btn-outline-light btn-sm" type="submit"><i class="fa-solid fa-power-off me-1"></i>Logout</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container my-4">
+
+        <!-- Mandatory Password Reset Banner -->
+        <div class="alert alert-warning alert-dismissible fade show" role="alert" th:if="${passwordResetRequired}">
+            <strong><i class="fa-solid fa-triangle-exclamation me-1"></i>Password Reset Required:</strong> An administrator has requested that you reset your password.
+            <button type="button" class="btn btn-warning btn-sm ms-3" data-bs-toggle="modal" data-bs-target="#passwordResetModal">Reset Password Now</button>
+        </div>
+
+        <!-- Dynamic Header Section -->
+        <div class="header-section">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="display-5 fw-bold" th:text="${title}">Enterprise Document Intelligence</h1>
+                    <p class="lead" th:text="${description}">Professional parser and metadata extraction utility for Word, Excel, and PowerPoint.</p>
+                </div>
+                <div class="col-md-4 text-md-end text-start mt-3 mt-md-0">
+                    <div class="bg-white text-dark p-3 rounded shadow-sm d-inline-block">
+                        <small class="text-muted d-block uppercase fw-bold">Configuration Specs</small>
+                        <span class="badge bg-secondary me-1" th:text="'v' + ${version}">v1.0.0</span>
+                        <span class="badge bg-primary" th:text="${documentCode}">DOC-CODE</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Body Grid -->
+        <div class="row g-4">
+
+            <!-- Upload Column -->
+            <div class="col-lg-6">
+                <div class="card p-4 h-100">
+                    <h3 class="card-title mb-4"><i class="fa-solid fa-cloud-arrow-up text-primary me-2"></i>Upload Document</h3>
+                    <form id="uploadForm" enctype="multipart/form-data">
+                        <div class="dropzone-container" id="dropzone" onclick="document.getElementById('fileInput').click()">
+                            <i class="fa-solid fa-file-arrow-up fa-3x text-muted mb-3"></i>
+                            <h5>Drag & Drop your file here</h5>
+                            <p class="text-muted small">Supports .docx, .xlsx, .pptx files up to 50MB</p>
+                            <span class="btn btn-outline-primary btn-sm">Browse Files</span>
+                            <input type="file" id="fileInput" name="file" class="d-none" accept=".docx,.xlsx,.xls,.pptx">
+                        </div>
+                    </form>
+
+                    <!-- Real-time Status Alert Box -->
+                    <div id="statusAlert" class="alert mt-4 d-none" role="alert">
+                        <div class="d-flex align-items-center">
+                            <span id="statusIcon" class="me-2"></span>
+                            <div>
+                                <strong id="statusTitle">Processing...</strong>
+                                <div id="statusBody">Uploading the document to the parser server.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Documents Explorer Column -->
+            <div class="col-lg-6">
+                <div class="card p-4 h-100">
+                    <h3 class="card-title mb-3"><i class="fa-solid fa-box-archive text-secondary me-2"></i>Previously Processed Documents</h3>
+                    <p class="text-muted small">Select any document from the archive list below to inspect its extracted structure, tabs, sections, slides, and cell details.</p>
+
+                    <div class="mb-3">
+                        <label for="docSelector" class="form-label fw-bold">Select Document</label>
+                        <select class="form-select" id="docSelector">
+                            <option value="" disabled selected>-- Choose a processed document --</option>
+                            <option th:each="doc : ${documents}" th:value="${doc.id}" th:text="${doc.filename} + ' (' + ${doc.fileType} + ' - ' + ${doc.status} + ')'"></option>
+                        </select>
+                    </div>
+
+                    <div id="docMetaCard" class="card bg-light p-3 d-none">
+                        <h6 class="fw-bold mb-2 text-primary" id="metaFilename">document.docx</h6>
+                        <div class="d-flex gap-2">
+                            <span class="badge badge-processed" id="metaStatus">PROCESSED</span>
+                            <span class="badge bg-dark" id="metaType">WORD</span>
+                            <span class="badge bg-secondary" id="metaTime">Jan 1, 2025</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detail Viewer Container (Full Width) -->
+            <div class="col-12 d-none" id="detailsSection">
+                <div class="card p-4">
+                    <div class="border-bottom pb-3 mb-4 d-flex justify-content-between align-items-center">
+                        <h3 class="m-0"><i class="fa-solid fa-magnifying-glass-chart text-success me-2"></i>Document Structure & Section Viewer</h3>
+                        <span class="badge bg-primary fs-6" id="sectionCountBadge">0 sections found</span>
+                    </div>
+
+                    <div class="row">
+                        <!-- Navigation list of tabs/sections/slides -->
+                        <div class="col-md-4 border-end">
+                            <h5 class="mb-3 text-muted">Sections / Tabs / Slides</h5>
+                            <div class="list-group" id="sectionsList" role="tablist">
+                                <!-- Dynamically populated -->
+                            </div>
+                        </div>
+
+                        <!-- Main Content Pane -->
+                        <div class="col-md-8">
+                            <h5 class="mb-3 text-muted">Section Payload Content</h5>
+                            <div class="tab-content" id="sectionsContent">
+                                <!-- Dynamically populated -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Password Reset Modal (Forced or Voluntary) -->
+    <div class="modal fade" id="passwordResetModal" tabindex="-1" aria-labelledby="passwordResetModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <form action="/password-reset-force" method="post" class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="passwordResetModalLabel">Change Your Password</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-content p-4">
+                    <div class="mb-3">
+                        <label for="currentPassword" class="form-label">Current Password</label>
+                        <input type="password" class="form-control" name="currentPassword" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="newPassword" class="form-label">New Password</label>
+                        <input type="password" class="form-control" name="newPassword" required>
+                        <div class="form-text">Must be at least 8 characters long, contain an uppercase letter, a digit, and a special character.</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Update Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-light py-4 mt-5">
+        <div class="container text-center">
+            <p class="mb-1" th:text="${title} + ' &copy; 2025'"></p>
+            <small class="text-muted" th:text="'App Version: ' + ${version} + ' | Document Code: ' + ${documentCode} + ' | Auth Mode: ' + (${ldapEnabled} ? 'LDAP' : 'Local Database')"></small>
+        </div>
+    </footer>
+
+    <!-- Bootstrap & JS Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const dropzone = document.getElementById('dropzone');
+        const statusAlert = document.getElementById('statusAlert');
+        const statusIcon = document.getElementById('statusIcon');
+        const statusTitle = document.getElementById('statusTitle');
+        const statusBody = document.getElementById('statusBody');
+        const docSelector = document.getElementById('docSelector');
+
+        // Drag-and-drop mechanics
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.style.borderColor = '#2a5298';
+        });
+
+        dropzone.addEventListener('dragleave', () => {
+            dropzone.style.borderColor = '#cbd5e1';
+        });
+
+        dropzone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropzone.style.borderColor = '#cbd5e1';
+            if (e.dataTransfer.files.length > 0) {
+                fileInput.files = e.dataTransfer.files;
+                triggerUpload();
+            }
+        });
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                triggerUpload();
+            }
+        });
+
+        function triggerUpload() {
+            const file = fileInput.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // Reset & show spinner
+            statusAlert.className = 'alert alert-info mt-4';
+            statusIcon.innerHTML = '<span class="spinner-border spinner-border-sm d-block"></span>';
+            statusTitle.innerText = 'Uploading and Parsing...';
+            statusBody.innerText = `Sending "${file.name}" to the service engines.`;
+            statusAlert.classList.remove('d-none');
+
+            fetch('/api/documents/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(async (res) => {
+                const data = await res.json();
+                if (res.ok) {
+                    statusAlert.className = 'alert alert-success mt-4';
+                    statusIcon.innerHTML = '<i class="fa-solid fa-circle-check fa-lg"></i>';
+                    statusTitle.innerText = 'Processed Successfully!';
+                    statusBody.innerText = `"${data.filename}" is added to archival records.`;
+
+                    // Refresh Document Dropdown selection
+                    refreshDocumentSelector(data.documentId);
+                } else {
+                    throw new Error(data.error || 'Server processing failed');
+                }
+            })
+            .catch((err) => {
+                statusAlert.className = 'alert alert-danger mt-4';
+                statusIcon.innerHTML = '<i class="fa-solid fa-circle-xmark fa-lg"></i>';
+                statusTitle.innerText = 'Processing Failed';
+                statusBody.innerText = err.message;
+            });
+        }
+
+        // Dropdown selection trigger
+        docSelector.addEventListener('change', () => {
+            const docId = docSelector.value;
+            if (docId) {
+                loadDocumentDetails(docId);
+            }
+        });
+
+        function refreshDocumentSelector(selectId) {
+            fetch('/api/documents')
+            .then(res => res.json())
+            .then(docs => {
+                docSelector.innerHTML = '<option value="" disabled>-- Choose a processed document --</option>';
+                docs.forEach(doc => {
+                    const opt = document.createElement('option');
+                    opt.value = doc.id;
+                    opt.innerText = `${doc.filename} (${doc.fileType} - ${doc.status})`;
+                    if (doc.id === selectId) {
+                        opt.selected = true;
+                    }
+                    docSelector.appendChild(opt);
+                });
+                loadDocumentDetails(selectId);
+            });
+        }
+
+        function loadDocumentDetails(docId) {
+            fetch(`/api/documents/${docId}`)
+            .then(res => res.json())
+            .then(doc => {
+                // Populate metadata card
+                const docMetaCard = document.getElementById('docMetaCard');
+                const metaFilename = document.getElementById('metaFilename');
+                const metaStatus = document.getElementById('metaStatus');
+                const metaType = document.getElementById('metaType');
+                const metaTime = document.getElementById('metaTime');
+
+                metaFilename.innerText = doc.filename;
+                metaStatus.innerText = doc.status;
+                metaStatus.className = doc.status === 'PROCESSED' ? 'badge badge-processed' : 'badge badge-failed';
+                metaType.innerText = doc.fileType;
+                metaTime.innerText = new Date(doc.processedAt).toLocaleString();
+                docMetaCard.classList.remove('d-none');
+
+                // Render Sections
+                const detailsSection = document.getElementById('detailsSection');
+                const sectionsList = document.getElementById('sectionsList');
+                const sectionsContent = document.getElementById('sectionsContent');
+                const sectionCountBadge = document.getElementById('sectionCountBadge');
+
+                sectionsList.innerHTML = '';
+                sectionsContent.innerHTML = '';
+                sectionCountBadge.innerText = `${doc.sections.length} sections extracted`;
+
+                if (doc.sections.length === 0) {
+                    sectionsList.innerHTML = '<div class="text-muted p-2">No structural section content extracted.</div>';
+                } else {
+                    doc.sections.forEach((sec, idx) => {
+                        // Section Button / List item
+                        const item = document.createElement('button');
+                        item.className = `list-group-item list-group-item-action text-start ${idx === 0 ? 'active' : ''}`;
+                        item.id = `sec-tab-${sec.id}`;
+                        item.setAttribute('data-bs-toggle', 'list');
+                        item.setAttribute('data-bs-target', `#sec-content-${sec.id}`);
+                        item.type = 'button';
+                        item.innerHTML = `<i class="fa-solid fa-layer-group me-2"></i> ${sec.name}`;
+                        sectionsList.appendChild(item);
+
+                        // Content Pane
+                        const pane = document.createElement('div');
+                        pane.className = `tab-pane fade ${idx === 0 ? 'show active' : ''}`;
+                        pane.id = `sec-content-${sec.id}`;
+                        pane.innerHTML = `
+                            <div class="p-3 bg-white border rounded shadow-sm">
+                                <h4 class="mb-3 text-dark fw-bold border-bottom pb-2">${sec.name}</h4>
+                                <pre class="section-content-pre">${sec.content || 'No text content available in this section.'}</pre>
+                            </div>
+                        `;
+                        sectionsContent.appendChild(pane);
+                    });
+                }
+
+                detailsSection.classList.remove('d-none');
+            });
+        }
+    </script>
+</body>
+</html>

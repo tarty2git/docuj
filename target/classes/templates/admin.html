@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="${title} + ' - System Administration'">Administration</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f4f6f9;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .navbar-brand {
+            font-weight: 700;
+        }
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <span class="navbar-brand"><i class="fa-solid fa-file-shield me-2"></i>DocProcessor Control</span>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/"><i class="fa-solid fa-gauge me-1"></i>Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/admin"><i class="fa-solid fa-users-gear me-1"></i>Admin Console</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/swagger-ui.html" target="_blank"><i class="fa-solid fa-code me-1"></i>Swagger API</a>
+                    </li>
+                </ul>
+                <div class="d-flex align-items-center">
+                    <span class="text-light me-3"><i class="fa-solid fa-user me-1"></i>Welcome, Admin <strong th:text="${username}">Admin</strong></span>
+                    <form action="/logout" method="post">
+                        <button class="btn btn-outline-light btn-sm" type="submit"><i class="fa-solid fa-power-off me-1"></i>Logout</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Admin Content -->
+    <div class="container my-5">
+
+        <h1 class="mb-4"><i class="fa-solid fa-sliders text-primary me-2"></i>System Administration & Configurations</h1>
+
+        <div class="row g-4">
+
+            <!-- Global Config Card -->
+            <div class="col-md-5">
+                <div class="card p-4 h-100">
+                    <h3 class="card-title mb-4 text-secondary"><i class="fa-solid fa-gears me-2"></i>Global Metadata Specs</h3>
+
+                    <form id="configForm">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Application Title</label>
+                            <input type="text" class="form-control" id="configTitle" name="title" th:value="${title}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Application Description</label>
+                            <textarea class="form-control" id="configDescription" name="description" rows="3" th:text="${description}" required></textarea>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <label class="form-label fw-bold">Version Number</label>
+                                <input type="text" class="form-control" id="configVersion" name="version" th:value="${version}" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label fw-bold">Document Code</label>
+                                <input type="text" class="form-control" id="configDocCode" name="documentCode" th:value="${documentCode}" required>
+                            </div>
+                        </div>
+
+                        <!-- LDAP Configuration Option -->
+                        <div class="card border bg-light p-3 mb-4">
+                            <h5 class="fw-bold mb-2"><i class="fa-solid fa-network-wired text-info me-2"></i>LDAP Directory Engine</h5>
+                            <div class="form-check form-switch mb-2">
+                                <input class="form-check-input" type="checkbox" role="switch" id="configLdap" th:checked="${ldapEnabled}">
+                                <label class="form-check-label" for="configLdap">Enable LDAP Shadow Authenticator</label>
+                            </div>
+                            <div class="form-text text-muted" style="font-size: 0.8rem;">
+                                If active, local DB passwords are bypassed and LDAP credentials (Default LDAP test password: <strong>LdapPass123!</strong>) are used.
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100"><i class="fa-solid fa-floppy-disk me-1"></i>Save Configurations</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Users Maintenance Grid -->
+            <div class="col-md-7">
+                <div class="card p-4 h-100">
+                    <h3 class="card-title mb-4 text-secondary"><i class="fa-solid fa-users me-2"></i>User Maintenance Pool</h3>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>User</th>
+                                    <th>Email & Role</th>
+                                    <th>Status Flags</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr th:each="user : ${users}">
+                                    <td>
+                                        <strong th:text="${user.username}">user</strong>
+                                    </td>
+                                    <td>
+                                        <div class="text-muted small" th:text="${user.email}">user@company.com</div>
+                                        <span class="badge bg-dark" th:text="${user.role}">ROLE_USER</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-danger mb-1 d-inline-block" th:if="${user.locked}">LOCKED</span>
+                                        <span class="badge bg-success mb-1 d-inline-block" th:if="${!user.locked}">ACTIVE</span>
+                                        <span class="badge bg-warning mb-1 d-inline-block" th:if="${user.passwordResetRequired}">RESET_REQ</span>
+                                        <span class="badge bg-secondary d-inline-block" th:if="${user.credentialsExpired}">PWD_EXP</span>
+                                    </td>
+                                    <td>
+                                        <div class="dropdown">
+                                            <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                                Manage
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                <li><a class="dropdown-item" href="#" th:onclick="'updateUserStatus(' + ${user.id} + ', false, true, null, null)'"><i class="fa-solid fa-unlock me-2 text-success"></i>Unlock Account</a></li>
+                                                <li><a class="dropdown-item" href="#" th:onclick="'updateUserStatus(' + ${user.id} + ', true, false, null, null)'"><i class="fa-solid fa-lock me-2 text-danger"></i>Lock Account</a></li>
+                                                <li><a class="dropdown-item" href="#" th:onclick="'updateUserStatus(' + ${user.id} + ', null, null, true, null)'"><i class="fa-solid fa-key me-2 text-warning"></i>Require Password Reset</a></li>
+                                                <li><a class="dropdown-item" href="#" th:onclick="'updateUserStatus(' + ${user.id} + ', null, null, null, true)'"><i class="fa-solid fa-hourglass-end me-2 text-secondary"></i>Force Pass Expiration</a></li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li><a class="dropdown-item text-danger" href="#" th:onclick="'deleteUser(' + ${user.id} + ')'"><i class="fa-solid fa-trash me-2"></i>Delete Profile</a></li>
+                                            </ul>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Script triggers -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('configForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const title = document.getElementById('configTitle').value;
+            const desc = document.getElementById('configDescription').value;
+            const version = document.getElementById('configVersion').value;
+            const docCode = document.getElementById('configDocCode').value;
+            const ldap = document.getElementById('configLdap').checked;
+
+            const url = `/api/admin/config?title=${encodeURIComponent(title)}&description=${encodeURIComponent(desc)}&version=${encodeURIComponent(version)}&documentCode=${encodeURIComponent(docCode)}&ldapEnabled=${ldap}`;
+
+            fetch(url, {
+                method: 'POST'
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert(data.message || 'Configuration updated!');
+                window.location.reload();
+            })
+            .catch(err => alert(err.message));
+        });
+
+        function updateUserStatus(userId, lock, unlock, reset, expire) {
+            let url = `/api/admin/users/${userId}/status?`;
+            if (lock !== null) url += `lock=${lock}&`;
+            if (unlock !== null) url += `unlock=${unlock}&`;
+            if (reset !== null) url += `resetPassword=${reset}&`;
+            if (expire !== null) url += `expireCredentials=${expire}&`;
+
+            fetch(url, { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                alert(data.message);
+                window.location.reload();
+            })
+            .catch(err => alert(err.message));
+        }
+
+        function deleteUser(userId) {
+            if (confirm("Are you sure you want to permanently delete this user?")) {
+                fetch(`/api/admin/users/${userId}`, { method: 'DELETE' })
+                .then(res => res.json())
+                .then(data => {
+                    alert(data.message);
+                    window.location.reload();
+                })
+                .catch(err => alert(err.message));
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+/app/src/main/java/com/docprocessor/DocProcessorApplication.java
+/app/src/main/java/com/docprocessor/controller/AdminApiController.java
+/app/src/main/java/com/docprocessor/controller/DocumentApiController.java
+/app/src/main/java/com/docprocessor/controller/WebMvcController.java
+/app/src/main/java/com/docprocessor/model/DocumentSection.java
+/app/src/main/java/com/docprocessor/model/ProcessedDocument.java
+/app/src/main/java/com/docprocessor/model/SystemConfiguration.java
+/app/src/main/java/com/docprocessor/model/User.java
+/app/src/main/java/com/docprocessor/repository/ProcessedDocumentRepository.java
+/app/src/main/java/com/docprocessor/repository/SystemConfigurationRepository.java
+/app/src/main/java/com/docprocessor/repository/UserRepository.java
+/app/src/main/java/com/docprocessor/security/CustomAuthenticationProvider.java
+/app/src/main/java/com/docprocessor/security/SecurityConfig.java
+/app/src/main/java/com/docprocessor/service/DocumentParsingService.java
+/app/src/main/java/com/docprocessor/service/SystemConfigurationService.java
+/app/src/main/java/com/docprocessor/service/UserService.java

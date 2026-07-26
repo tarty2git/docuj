@@ -1,0 +1,72 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: doc-processor-config
+  namespace: default
+data:
+  # Enable different DB profiles by overriding active profile (h2, postgres, sqlserver, oracle)
+  SPRING_PROFILES_ACTIVE: "h2"
+  APP_DEFAULTS_TITLE: "Enterprise Document Intelligence"
+  APP_DEFAULTS_VERSION: "3.4.12"
+  APP_DEFAULTS_DOCUMENT_CODE: "DOC-K8S-2025"
+  LDAP_ENABLED: "false"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: doc-processor
+  namespace: default
+  labels:
+    app: doc-processor
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: doc-processor
+  template:
+    metadata:
+      labels:
+        app: doc-processor
+    spec:
+      containers:
+      - name: doc-processor
+        image: doc-processor:latest
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+        envFrom:
+        - configMapRef:
+            name: doc-processor-config
+        resources:
+          limits:
+            cpu: "1"
+            memory: 1Gi
+          requests:
+            cpu: 500m
+            memory: 512Mi
+        readinessProbe:
+          httpGet:
+            path: /login
+            port: 8080
+          initialDelaySeconds: 20
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /login
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: doc-processor-service
+  namespace: default
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app: doc-processor
