@@ -15,9 +15,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class DocumentParsingService {
@@ -50,23 +54,36 @@ public class DocumentParsingService {
         doc.setFilename(filename);
 
         try (InputStream is = file.getInputStream()) {
-            if (".docx".equals(suffix)) {
+            byte[] content = is.readAllBytes();
+            String contentType = file.getContentType();
+            String detectedType = detectFileType(suffix, contentType, content);
+
+            if ("WORD".equals(detectedType)) {
                 doc.setFileType("WORD");
-                parseWord(is, doc);
-            } else if (".xlsx".equals(suffix) || ".xls".equals(suffix)) {
+                parseWord(new ByteArrayInputStream(content), doc);
+            } else if ("EXCEL".equals(detectedType)) {
                 doc.setFileType("EXCEL");
-                parseExcel(is, doc);
-            } else if (".pptx".equals(suffix)) {
+                parseExcel(new ByteArrayInputStream(content), doc);
+            } else if ("POWERPOINT".equals(detectedType)) {
                 doc.setFileType("POWERPOINT");
-                parsePowerPoint(is, doc);
+                parsePowerPoint(new ByteArrayInputStream(content), doc);
+            } else if ("XML".equals(detectedType)) {
+                doc.setFileType("XML");
+                parseXml(new ByteArrayInputStream(content), doc);
+            } else if ("PDF".equals(detectedType)) {
+                doc.setFileType("PDF");
+                parsePdf(new ByteArrayInputStream(content), doc);
+            } else if (contentType != null && contentType.startsWith("text/")) {
+                doc.setFileType("TEXT");
+                parseText(new ByteArrayInputStream(content), doc);
             } else {
-                throw new IllegalArgumentException("Unsupported file type: " + suffix);
+                doc.setFileType("UNKNOWN");
+                parseGeneric(new ByteArrayInputStream(content), doc);
             }
             doc.setStatus("PROCESSED");
         } catch (Exception e) {
             doc.setStatus("FAILED");
             doc.setErrorMessage(e.getMessage());
-            // Add fallback empty sections if parsing completely breaks
             if (doc.getFileType() == null) {
                 doc.setFileType("UNKNOWN");
             }
@@ -164,5 +181,61 @@ public class DocumentParsingService {
                 doc.addSection(new DocumentSection("Slide " + (i + 1), content, i + 1));
             }
         }
+    }
+
+    private void parseXml(InputStream is, ProcessedDocument doc) throws Exception {
+        String content = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        doc.addSection(new DocumentSection("XML Content", content, 1));
+    }
+
+    private void parsePdf(InputStream is, ProcessedDocument doc) throws Exception {
+        String text = new String(is.readAllBytes(), StandardCharsets.ISO_8859_1);
+        Pattern pattern = Pattern.compile("\\(([^()]+)\\)");
+        Matcher matcher = pattern.matcher(text);
+        StringBuilder extracted = new StringBuilder();
+        while (matcher.find()) {
+            extracted.append(matcher.group(1)).append("\n");
+        }
+        String content = extracted.length() > 0 ? extracted.toString() : text;
+        doc.addSection(new DocumentSection("PDF Content", content, 1));
+    }
+
+    private void parseText(InputStream is, ProcessedDocument doc) throws Exception {
+        String content = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        doc.addSection(new DocumentSection("Text Content", content, 1));
+    }
+
+    private void parseGeneric(InputStream is, ProcessedDocument doc) throws Exception {
+        String content = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+        doc.addSection(new DocumentSection("Generic Content", content, 1));
+    }
+
+    private String detectFileType(String suffix, String contentType, byte[] content) {
+        if (contentType != null) {
+            if (contentType.contains("msword") || contentType.contains("wordprocessing") || ".docx".equals(suffix)) {
+                return "WORD";
+            }
+            if (contentType.contains("sheet") || contentType.contains("excel") || ".xlsx".equals(suffix) || ".xls".equals(suffix)) {
+                return "EXCEL";
+            }
+            if (contentType.contains("powerpoint") || contentType.contains("presentation") || ".pptx".equals(suffix)) {
+                return "POWERPOINT";
+            }
+            if (contentType.contains("xml") || ".xml".equals(suffix)) {
+                return "XML";
+            }
+            if (contentType.contains("pdf") || ".pdf".equals(suffix)) {
+                return "PDF";
+            }
+        }
+
+        String sample = new String(content, StandardCharsets.UTF_8).trim();
+        if (sample.startsWith("<") && sample.endsWith(">")) {
+            return "XML";
+        }
+        if (sample.contains("%PDF")) {
+            return "PDF";
+        }
+        return null;
     }
 }
