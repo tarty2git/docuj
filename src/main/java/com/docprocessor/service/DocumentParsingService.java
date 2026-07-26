@@ -3,6 +3,8 @@ package com.docprocessor.service;
 import com.docprocessor.model.DocumentSection;
 import com.docprocessor.model.ProcessedDocument;
 import com.docprocessor.repository.ProcessedDocumentRepository;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.poi.xslf.usermodel.XMLSlideShow;
@@ -20,8 +22,6 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Service
 public class DocumentParsingService {
@@ -189,15 +189,15 @@ public class DocumentParsingService {
     }
 
     private void parsePdf(InputStream is, ProcessedDocument doc) throws Exception {
-        String text = new String(is.readAllBytes(), StandardCharsets.ISO_8859_1);
-        Pattern pattern = Pattern.compile("\\(([^()]+)\\)");
-        Matcher matcher = pattern.matcher(text);
-        StringBuilder extracted = new StringBuilder();
-        while (matcher.find()) {
-            extracted.append(matcher.group(1)).append("\n");
+        try (PDDocument document = PDDocument.load(is)) {
+            PDFTextStripper stripper = new PDFTextStripper();
+            String content = stripper.getText(document);
+            String cleanedContent = content == null ? "" : content.trim();
+            if (cleanedContent.isEmpty()) {
+                cleanedContent = "No readable text found in PDF";
+            }
+            doc.addSection(new DocumentSection("PDF Content", cleanedContent, 1));
         }
-        String content = extracted.length() > 0 ? extracted.toString() : text;
-        doc.addSection(new DocumentSection("PDF Content", content, 1));
     }
 
     private void parseText(InputStream is, ProcessedDocument doc) throws Exception {

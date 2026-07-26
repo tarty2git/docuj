@@ -1,11 +1,17 @@
 package com.docprocessor.service;
 
 import com.docprocessor.model.ProcessedDocument;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
+
+import java.io.ByteArrayOutputStream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -33,12 +39,12 @@ public class DocumentParsingServiceTest {
     }
 
     @Test
-    public void testProcessDocument_PdfFile() {
+    public void testProcessDocument_PdfFile() throws Exception {
         MockMultipartFile pdfFile = new MockMultipartFile(
                 "file",
                 "sample.pdf",
                 "application/pdf",
-                createMinimalPdfContent().getBytes()
+                createMinimalPdfContent()
         );
 
         ProcessedDocument doc = parsingService.processDocument(pdfFile);
@@ -62,38 +68,22 @@ public class DocumentParsingServiceTest {
         });
     }
 
-    private String createMinimalPdfContent() {
-        return "%PDF-1.4\n" +
-                "1 0 obj\n" +
-                "<< /Type /Catalog /Pages 2 0 R >>\n" +
-                "endobj\n" +
-                "2 0 obj\n" +
-                "<< /Type /Pages /Kids [3 0 R] /Count 1 >>\n" +
-                "endobj\n" +
-                "3 0 obj\n" +
-                "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 144] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\n" +
-                "endobj\n" +
-                "4 0 obj\n" +
-                "<< /Length 44 >>\n" +
-                "stream\n" +
-                "BT /F1 18 Tf 72 720 Td (Hello PDF) Tj ET\n" +
-                "endstream\n" +
-                "endobj\n" +
-                "5 0 obj\n" +
-                "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\n" +
-                "endobj\n" +
-                "xref\n" +
-                "0 6\n" +
-                "0000000000 65535 f \n" +
-                "0000000010 00000 n \n" +
-                "0000000062 00000 n \n" +
-                "0000000119 00000 n \n" +
-                "0000000207 00000 n \n" +
-                "0000000315 00000 n \n" +
-                "trailer\n" +
-                "<< /Size 6 /Root 1 0 R >>\n" +
-                "startxref\n" +
-                "0\n" +
-                "%%EOF\n";
+    private byte[] createMinimalPdfContent() throws Exception {
+        try (PDDocument document = new PDDocument()) {
+            PDPage page = new PDPage();
+            document.addPage(page);
+
+            try (PDPageContentStream contentStream = new PDPageContentStream(document, page)) {
+                contentStream.beginText();
+                contentStream.setFont(PDType1Font.HELVETICA_BOLD, 12);
+                contentStream.newLineAtOffset(100, 700);
+                contentStream.showText("Hello PDF");
+                contentStream.endText();
+            }
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            document.save(baos);
+            return baos.toByteArray();
+        }
     }
 }
