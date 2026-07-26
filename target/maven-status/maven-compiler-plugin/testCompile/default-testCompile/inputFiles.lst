@@ -1,3 +1,3 @@
-/app/src/test/java/com/docprocessor/controller/AppIntegrationTest.java
-/app/src/test/java/com/docprocessor/service/DocumentParsingServiceTest.java
-/app/src/test/java/com/docprocessor/service/UserServiceTest.java
+/workspaces/docuj/src/test/java/com/docprocessor/controller/AppIntegrationTest.java
+/workspaces/docuj/src/test/java/com/docprocessor/service/DocumentParsingServiceTest.java
+/workspaces/docuj/src/test/java/com/docprocessor/service/UserServiceTest.java
